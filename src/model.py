@@ -12,21 +12,29 @@ from sklearn.metrics import accuracy_score, classification_report
 
 # Custom Transformer
 class IQRCapper(BaseEstimator, TransformerMixin):
+    
     def fit(self, X, y=None):
-        X = pd.DataFrame(X).copy()
-        self.columns = X.columns
-        self.q1_ = X.quantile(0.25)
-        self.q3_ = X.quantile(0.75)
-        iqr = self.q3_ - self.q1_
-        self.lower_ = self.q1_ - 1.5 * iqr
-        self.upper_ = self.q3_ + 1.5 * iqr
+        self.columns = X.columns  # column names save karo
+        
+        self.Q1 = X.quantile(0.25)
+        self.Q3 = X.quantile(0.75)
+        self.IQR = self.Q3 - self.Q1
+        
+        self.lower_bound = self.Q1 - 1.5 * self.IQR
+        self.upper_bound = self.Q3 + 1.5 * self.IQR
+        
         return self
-
+    
     def transform(self, X):
-        X = pd.DataFrame(X).copy()
+        X_capped = X.copy()
+        
         for col in self.columns:
-            X[col] = X[col].clip(self.lower_[col], self.upper_[col])
-        return X
+            X_capped[col] = X_capped[col].clip(
+                lower=self.lower_bound[col],
+                upper=self.upper_bound[col]
+            )
+        
+        return X_capped
 
 # Load Data
 df = pd.read_csv('../data/gold/feature_data.csv')
@@ -82,10 +90,10 @@ artifacts = {
     'features': list(X.columns)
 }
 
-with open('model.pkl', 'wb') as f:
+with open('return_model.pkl', 'wb') as f:
     pickle.dump(artifacts, f)
 
-print('Saved: model.pkl')
+print('Saved: return_model.pkl')
 
 
 
